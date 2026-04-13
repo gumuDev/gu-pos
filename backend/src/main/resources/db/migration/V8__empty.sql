@@ -1,0 +1,1 @@
+-- Dummy file to satisfy Flyway version 8 record in history table
