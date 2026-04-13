@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: pos_saas_db
+    environment:
+      POSTGRES_DB: pos_saas
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pos_saas_data:/var/lib/postgresql/data
+
+  minio:
+    image: minio/minio
+    container_name: pos_saas_minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Web console
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+
+  minio-init:
+    image: minio/mc
+    container_name: pos_saas_minio_init
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 3 &&
+      mc alias set local http://minio:9000 minioadmin minioadmin &&
+      mc mb --ignore-existing local/receipts &&
+      mc anonymous set public local/receipts &&
+      echo 'MinIO bucket receipts ready'
+      "
+
+volumes:
+  pos_saas_data:
+  minio_data:

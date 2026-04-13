@@ -1,0 +1,648 @@
+openapi: 3.0.3
+info:
+  title: POS SaaS API
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: Local
+  - url: https://api.pos-saas.com
+    description: Production
+
+paths:
+  /api/v1/auth/login:
+    post:
+      summary: Login de usuario, devuelve par de tokens
+      operationId: login
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Credenciales erróneas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/refresh:
+    post:
+      summary: Renovar tokens usando refresh token
+      operationId: refreshTokens
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Refresh token inválido o expirado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/sync/pull:
+    get:
+      summary: Pull cambios del cloud al mobile (protocolo WatermelonDB)
+      operationId: syncPull
+      tags:
+        - Sync
+      parameters:
+        - name: tenantId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: lastPulledAt
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+            default: 0
+      responses:
+        '200':
+          description: Cambios por tabla desde lastPulledAt
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncPullResponse'
+
+  /api/v1/sync/push:
+    post:
+      summary: Push cambios del mobile al cloud (protocolo WatermelonDB)
+      operationId: syncPush
+      tags:
+        - Sync
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncPushRequest'
+      responses:
+        '200':
+          description: Push procesado correctamente
+          content:
+            application/json:
+              example:
+                status: ok
+
+  /api/v1/tenant/register:
+    post:
+      summary: Registrar tenant desde onboarding mobile
+      operationId: registerTenant
+      tags:
+        - Tenant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterTenantRequest'
+            example:
+              businessName: "Pollería Don Juan"
+              phone: "+591 70123456"
+              currency: "BOB"
+              businessType: "restaurant"
+              features:
+                sizeVariants: false
+                modifiers: true
+                combos: true
+                stockControl: false
+                ingredientRecipes: false
+                customerDisplay: false
+                ticketPrinting: false
+              adminPin: "1234"
+      responses:
+        '201':
+          description: Tenant registrado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterTenantResponse'
+        '400':
+          description: Request inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: El teléfono ya está registrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tenant/{tenantId}/plan:
+    get:
+      summary: Obtener plan activo y features del tenant
+      operationId: getTenantPlan
+      tags:
+        - Tenant
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Plan activo y features habilitadas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanFeaturesResponse'
+              example:
+                planName: "basic"
+                active: true
+                endsAt: "2026-05-06T00:00:00Z"
+                sync: true
+                advancedReports: true
+                maxCashiers: 2
+                maxBranches: 1
+                multiBranch: false
+                telegramStockAlerts: true
+                csvExport: true
+
+  /api/v1/migration/catalog:
+    post:
+      summary: Migrar catálogo local → cloud (categorías, productos, variantes, modificadores, combos)
+      operationId: migrateCatalog
+      tags:
+        - Migration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tenantId, branchId]
+              properties:
+                tenantId:
+                  type: string
+                  format: uuid
+                branchId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Catálogo migrado exitosamente
+        '400':
+          description: Error en el request
+
+  /api/v1/migration/orders:
+    post:
+      summary: Migrar historial de ventas local → cloud
+      operationId: migrateOrders
+      tags:
+        - Migration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tenantId, branchId]
+              properties:
+                tenantId:
+                  type: string
+                  format: uuid
+                branchId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Órdenes migradas exitosamente
+
+  /api/v1/migration/stock:
+    post:
+      summary: Migrar stock actual local → cloud
+      operationId: migrateStock
+      tags:
+        - Migration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tenantId]
+              properties:
+                tenantId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Stock migrado exitosamente
+
+  /api/v1/subscription/request:
+    post:
+      summary: Solicitar suscripción — cliente envía comprobante de pago
+      operationId: requestSubscription
+      tags:
+        - Subscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestSubscriptionRequest'
+      responses:
+        '201':
+          description: Solicitud registrada, admin notificado por Telegram
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  requestId:
+                    type: string
+                    format: uuid
+        '400':
+          description: Request inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/admin/tenants:
+    get:
+      summary: Listar tenants (panel admin)
+      operationId: listTenants
+      tags:
+        - Admin
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Lista paginada de tenants
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedTenantSummaryResponse'
+
+  /api/v1/admin/tenants/{id}:
+    get:
+      summary: Detalle de tenant
+      operationId: getTenant
+      tags:
+        - Admin
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detalle completo del tenant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantDetailResponse'
+        '404':
+          description: Tenant no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/admin/tenants/{id}/activate:
+    post:
+      summary: Activar suscripción de un tenant
+      operationId: activateTenantSubscription
+      tags:
+        - Admin
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivateSubscriptionRequest'
+      responses:
+        '200':
+          description: Suscripción activada exitosamente
+        '400':
+          description: Plan inválido o tenant no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    LoginRequest:
+      type: object
+      required: [phone, password, deviceFingerprint]
+      properties:
+        phone:
+          type: string
+        password:
+          type: string
+        deviceFingerprint:
+          type: string
+
+    RefreshTokenRequest:
+      type: object
+      required: [refreshToken, deviceFingerprint]
+      properties:
+        refreshToken:
+          type: string
+        deviceFingerprint:
+          type: string
+
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        sessionExpiresAt:
+          type: string
+          format: date-time
+        tenantId:
+          type: string
+          format: uuid
+
+    RegisterTenantRequest:
+      type: object
+      required:
+        - businessName
+        - phone
+        - currency
+        - businessType
+        - features
+        - adminPin
+      properties:
+        businessName:
+          type: string
+          minLength: 2
+          maxLength: 60
+        phone:
+          type: string
+          minLength: 7
+          maxLength: 15
+        currency:
+          type: string
+          enum: [BOB, USD]
+        businessType:
+          type: string
+          enum: [restaurant, pizzeria, bakery, retail, other]
+        features:
+          $ref: '#/components/schemas/FeatureFlags'
+        adminPin:
+          type: string
+          pattern: '^\d{4}$'
+
+    FeatureFlags:
+      type: object
+      required:
+        - sizeVariants
+        - modifiers
+        - combos
+        - stockControl
+        - ingredientRecipes
+        - customerDisplay
+        - ticketPrinting
+      properties:
+        sizeVariants:
+          type: boolean
+        modifiers:
+          type: boolean
+        combos:
+          type: boolean
+        stockControl:
+          type: boolean
+        ingredientRecipes:
+          type: boolean
+        customerDisplay:
+          type: boolean
+        ticketPrinting:
+          type: boolean
+
+    RegisterTenantResponse:
+      type: object
+      properties:
+        tenantId:
+          type: string
+          format: uuid
+        businessName:
+          type: string
+        plan:
+          type: string
+        branchId:
+          type: string
+          format: uuid
+
+    TenantSummaryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        phone:
+          type: string
+        planName:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    PagedTenantSummaryResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TenantSummaryResponse'
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        size:
+          type: integer
+
+    FeatureFlagsResponse:
+      type: object
+      properties:
+        sizeVariants:
+          type: boolean
+        modifiers:
+          type: boolean
+        combos:
+          type: boolean
+        stockControl:
+          type: boolean
+        ingredientRecipes:
+          type: boolean
+        customerDisplay:
+          type: boolean
+        ticketPrinting:
+          type: boolean
+
+    TenantDetailResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        phone:
+          type: string
+        currency:
+          type: string
+        businessType:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        featuresConfig:
+          $ref: '#/components/schemas/FeatureFlagsResponse'
+        planId:
+          type: string
+          format: uuid
+        planName:
+          type: string
+        subscriptionStatus:
+          type: string
+        subscriptionStartedAt:
+          type: string
+          format: date-time
+        subscriptionEndsAt:
+          type: string
+          format: date-time
+        subscriptionHistory:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionHistoryItem'
+        branchId:
+          type: string
+          format: uuid
+        branchName:
+          type: string
+
+    SubscriptionHistoryItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        planId:
+          type: string
+          format: uuid
+        status:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        activatedAt:
+          type: string
+          format: date-time
+
+    ActivateSubscriptionRequest:
+      type: object
+      required: [planName]
+      properties:
+        planName:
+          type: string
+          enum: [basic, pro]
+
+    RequestSubscriptionRequest:
+      type: object
+      required: [tenantId, planName]
+      properties:
+        tenantId:
+          type: string
+          format: uuid
+        planName:
+          type: string
+          enum: [basic, pro]
+        transactionRef:
+          type: string
+        receiptUrl:
+          type: string
+
+    PlanFeaturesResponse:
+      type: object
+      properties:
+        planName:
+          type: string
+          enum: [local, basic, pro]
+        active:
+          type: boolean
+        endsAt:
+          type: string
+          format: date-time
+          nullable: true
+        sync:
+          type: boolean
+        advancedReports:
+          type: boolean
+        maxCashiers:
+          type: integer
+        maxBranches:
+          type: integer
+          nullable: true
+        multiBranch:
+          type: boolean
+        telegramStockAlerts:
+          type: boolean
+        csvExport:
+          type: boolean
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
