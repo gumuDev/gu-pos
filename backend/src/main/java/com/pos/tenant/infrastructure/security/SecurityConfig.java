@@ -22,7 +22,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthFilter) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
-            .cors(AbstractHttpConfigurer::disable)
+            .cors(cors -> cors.configure(http))
             .sessionManagement(sess -> sess.sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.STATELESS))
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint((request, response, authException) -> {
@@ -44,6 +44,7 @@ public class SecurityConfig {
                     "/api/v1/subscription/request/latest",
                     "/api/v1/storage/upload",
                     "/api/v1/support/reports",
+                    "/api/v1/mobile/error-logs",
                     "/api/v1/admin/**"
                 ).permitAll()
                 .anyRequest().authenticated()

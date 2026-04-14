@@ -1,3 +1,11 @@
 .CLAUDE.local.md
 .DS_Store
 .images
+
+# Secrets — never commit
+.env
+.env.local
+.env.production
+.env.*
+backend/.env
+mobile/.env
