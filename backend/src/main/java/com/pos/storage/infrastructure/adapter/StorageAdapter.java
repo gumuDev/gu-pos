@@ -25,15 +25,26 @@ public class StorageAdapter {
     public String upload(MultipartFile file) throws Exception {
         String ext = getExtension(file.getOriginalFilename());
         String filename = "receipt_" + UUID.randomUUID() + "." + ext;
-        String uploadUrl = props.getUrl() + "/" + props.getBucket() + "/" + filename;
-        String publicUrl = props.getPublicUrl() + "/" + props.getBucket() + "/" + filename;
+
+        // Supabase REST API uses /storage/v1/object/<bucket>/<filename>
+        // Public URL uses /storage/v1/object/public/<bucket>/<filename>
+        String uploadUrl;
+        String publicUrl;
+        if ("supabase".equals(props.getProvider())) {
+            String base = props.getUrl().replace("/s3", ""); // strip S3 suffix if present
+            uploadUrl = base + "/object/" + props.getBucket() + "/" + filename;
+            publicUrl = base + "/object/public/" + props.getBucket() + "/" + filename;
+        } else {
+            uploadUrl = props.getUrl() + "/" + props.getBucket() + "/" + filename;
+            publicUrl = props.getPublicUrl() + "/" + props.getBucket() + "/" + filename;
+        }
 
         log.info("Uploading receipt — provider={} uploadUrl={}", props.getProvider(), uploadUrl);
 
         byte[] bytes = file.getBytes();
 
         HttpURLConnection conn = (HttpURLConnection) URI.create(uploadUrl).toURL().openConnection();
-        conn.setRequestMethod("PUT");
+        conn.setRequestMethod("POST");
         conn.setDoOutput(true);
         conn.setFixedLengthStreamingMode(bytes.length);
         conn.setRequestProperty("Content-Type", file.getContentType() != null ? file.getContentType() : "image/jpeg");
