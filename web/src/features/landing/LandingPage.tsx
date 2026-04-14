@@ -122,7 +122,7 @@ export default function LandingPage() {
               Descarga nuestra aplicación oficial y empieza a gestionar tu negocio desde tu dispositivo móvil o tablet de manera eficiente.
             </p>
             <div style={{ marginTop: '32px' }}>
-              <a href="https://drive.google.com/uc?export=download&id=12gpsBd-1m0t57qDB0URNFo4feWtAaONn" target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ padding: '16px 40px', fontSize: '1.2rem', display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
+              <a href="https://github.com/gumuDev/gu-pos/releases/download/v1.0.0/app-debug.apk" target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ padding: '16px 40px', fontSize: '1.2rem', display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
                  Descargar APK
               </a>
               <p style={{ marginTop: '16px', fontSize: '0.875rem', color: 'var(--lp-text-muted)' }}>Versión 2.0.4 - Compatible con Android 8.0+</p>

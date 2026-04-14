@@ -52,6 +52,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
         } catch (Exception e) {
+            // If the endpoint is public (e.g. error-logs), allow the request through without auth
+            String path = request.getRequestURI();
+            if (isPublicPath(path)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
             response.getWriter().write("{\"error\":\"invalid_or_expired_token\"}");
@@ -59,5 +65,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private boolean isPublicPath(String path) {
+        return path.startsWith("/api/v1/auth/")
+            || path.startsWith("/api/v1/tenant/register")
+            || path.startsWith("/api/v1/mobile/error-logs")
+            || path.startsWith("/api/v1/support/reports")
+            || path.startsWith("/api/v1/subscription/request")
+            || path.startsWith("/api/v1/storage/upload")
+            || path.startsWith("/api/v1/admin/");
     }
 }
