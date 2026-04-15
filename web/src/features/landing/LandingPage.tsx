@@ -32,7 +32,7 @@ export default function LandingPage() {
             Una solución potente diseñada para trabajar de forma local y sincronizar con la nube. Ideal para negocios que buscan agilidad y control total.
           </p>
           <div style={{ display: 'flex', gap: 16 }}>
-            <a href="https://drive.google.com/file/d/1aj6ednJPHiKc7t-_Pi8i4Jlp39ar_6ug/view?usp=drive_link" target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ padding: '14px 28px', fontSize: '1.1rem' }}>Descargar App</a>
+            <a href="https://github.com/gumuDev/gu-pos/releases/download/v1.0.0/app-debug.apk" target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ padding: '14px 28px', fontSize: '1.1rem' }}>Descargar App</a>
             <a href="#features" className="btn btn-outline" style={{ padding: '14px 28px', fontSize: '1.1rem' }}>Saber más</a>
           </div>
         </div>
